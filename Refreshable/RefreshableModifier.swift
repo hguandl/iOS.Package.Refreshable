@@ -38,14 +38,20 @@ struct RefreshableModifier: ViewModifier {
 	let action: () async -> Void
 	
 	func body(content: Content) -> some View {
-		content
-			.environment(\.refresh, RefreshAction(action: action))
-			.onRefresh { refreshControl in
-				Task {
-					await action()
-					refreshControl.endRefreshing()
-				}
-			}
+        if #available(iOS 15.0, *) {
+            content.refreshable {
+                await action()
+            }
+        } else {
+            content
+                .environment(\.refresh, RefreshAction(action: action))
+                .onRefresh { refreshControl in
+                    Task {
+                        await action()
+                        refreshControl.endRefreshing()
+                    }
+                }
+        }
 	}
 }
 
@@ -53,7 +59,7 @@ struct RefreshableModifier: ViewModifier {
 public extension View {
 	
 	@available(iOS, obsoleted: 15)
-	func refreshable(action: @escaping @Sendable () async -> Void) -> some View {
+	func compactRefreshable(action: @escaping @Sendable () async -> Void) -> some View {
 		self.modifier(RefreshableModifier(action: action))
 	}
 }
